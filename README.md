@@ -373,3 +373,14 @@ CREATE TABLE Log (
     Message NVARCHAR(255),
     UtcTime DATETIME2
 );
+
+Run the project by setting correct connection string in appsettings.json file.
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=EmailService;User Id=sa;Password=your_password;"
+  }
+}
+```
+
+Later post create-schedule endpoint, you can check the logs in the Log table.
