@@ -1,0 +1,11 @@
+services:
+  emailservice1:
+    image: ${DOCKER_REGISTRY-}emailservice
+    build:
+      context: .
+      dockerfile: src/EmailService/Dockerfile
+  emailservice2:
+    image: ${DOCKER_REGISTRY-}emailservice
+    build:
+      context: .
+      dockerfile: src/EmailService/Dockerfile

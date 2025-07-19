@@ -6,6 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddScoped<IEmailService, EmailService.EmailService>();
+
 builder.Services.AddQuartz(quartzConfiguration =>
 {
     quartzConfiguration.UsePersistentStore(persistentStoreoptions =>
@@ -17,14 +19,6 @@ builder.Services.AddQuartz(quartzConfiguration =>
     });
 
     quartzConfiguration.SetProperty("quartz.scheduler.instanceId", "AUTO");
-
-    JobKey jobKey = new(nameof(SendEmailJob));
-    quartzConfiguration.AddJob<SendEmailJob>(jobKey)
-        .AddTrigger(trigger =>
-            trigger.ForJob(jobKey)
-                .WithSimpleSchedule(schedule =>
-                    schedule.WithIntervalInSeconds(5)
-                        .RepeatForever()));
 });
 
 builder.Services.AddQuartzHostedService();
@@ -57,6 +51,34 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast")
+.WithOpenApi();
+
+app.MapPost("/create-schedule", async (ISchedulerFactory schedulerFactory) =>
+{
+    var scheduler = await schedulerFactory.GetScheduler();
+
+    var jobKey = new JobKey($"send-email", "email");
+
+    if (await scheduler.CheckExists(jobKey))
+    {
+        return Results.Conflict("Job already scheduled.");
+    }
+
+    var jobDetail = JobBuilder.Create<SendEmailJob>()
+        .WithIdentity(jobKey)
+        .Build();
+
+    var trigger = TriggerBuilder.Create()
+        .WithIdentity($"trigger-send-email", "email")
+        .ForJob(jobDetail)
+        .WithCronSchedule("0 * * ? * *")
+        .Build();
+
+    await scheduler.ScheduleJob(jobDetail, trigger);
+
+    return Results.Ok("Schedule created successfully.");
+})
+.WithName("CreateSchedule")
 .WithOpenApi();
 
 app.Run();
